@@ -1,0 +1,182 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --background: 220 20% 97%;
+    --foreground: 224 71% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 224 71% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71% 8%;
+
+    --primary: 234 89% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 18% 96%;
+    --secondary-foreground: 224 47% 12%;
+
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 172 66% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 54%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 16% 88%;
+    --input: 220 16% 88%;
+    --ring: 234 89% 58%;
+
+    --chart1: 234 89% 58%;
+    --chart2: 172 66% 50%;
+    --chart3: 38 92% 58%;
+    --chart4: 277 70% 60%;
+    --chart5: 197 85% 48%;
+
+    --radius: 1rem;
+}
+
+.dark {
+    --background: 224 36% 8%;
+    --foreground: 213 31% 91%;
+
+    --card: 224 33% 11%;
+    --card-foreground: 213 31% 91%;
+
+    --popover: 224 33% 11%;
+    --popover-foreground: 213 31% 91%;
+
+    --primary: 234 89% 64%;
+    --primary-foreground: 224 71% 8%;
+
+    --secondary: 223 24% 16%;
+    --secondary-foreground: 213 31% 91%;
+
+    --muted: 223 24% 16%;
+    --muted-foreground: 215 16% 70%;
+
+    --accent: 172 66% 44%;
+    --accent-foreground: 213 31% 91%;
+
+    --destructive: 0 62% 52%;
+    --destructive-foreground: 213 31% 91%;
+
+    --border: 223 20% 22%;
+    --input: 223 20% 22%;
+    --ring: 234 89% 64%;
+
+    --chart1: 234 89% 64%;
+    --chart2: 172 66% 44%;
+    --chart3: 38 86% 58%;
+    --chart4: 277 65% 64%;
+    --chart5: 197 85% 58%;
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply bg-background font-body text-foreground antialiased;
+        min-height: 100vh;
+        background-image:
+            radial-gradient(
+                circle at top left,
+                hsl(var(--primary) / 0.08),
+                transparent 30%
+            ),
+            radial-gradient(
+                circle at bottom right,
+                hsl(var(--accent) / 0.08),
+                transparent 32%
+            );
+    }
+
+    #root {
+        min-height: 100vh;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply font-heading tracking-tight;
+    }
+
+    a {
+        @apply transition-colors;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+        font: inherit;
+    }
+
+    ::selection {
+        background: hsl(var(--primary) / 0.18);
+        color: hsl(var(--foreground));
+    }
+}
+
+@layer components {
+    .glass-panel {
+        @apply rounded-3xl border border-white/50 bg-white/80 shadow-card backdrop-blur;
+    }
+
+    .section-shell {
+        @apply mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8;
+    }
+
+    .gradient-text {
+        @apply bg-gradient-to-r from-primary via-indigo-500 to-accent bg-clip-text text-transparent;
+    }
+
+    .hero-grid {
+        background-image:
+            linear-gradient(
+                to right,
+                hsl(var(--border) / 0.45) 1px,
+                transparent 1px
+            ),
+            linear-gradient(
+                to bottom,
+                hsl(var(--border) / 0.45) 1px,
+                transparent 1px
+            );
+        background-size: 28px 28px;
+        mask-image: radial-gradient(
+            circle at center,
+            black 35%,
+            transparent 85%
+        );
+    }
+}
+
+@layer utilities {
+    .text-balance {
+        text-wrap: balance;
+    }
+
+    .surface-muted {
+        @apply bg-muted/70;
+    }
+
+    .ring-focus {
+        @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    }
+}
