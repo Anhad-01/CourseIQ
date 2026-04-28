@@ -37,16 +37,29 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [setupRequired, setSetupRequired] = useState(false)
 
   useEffect(() => {
     let active = true
 
     auth
       .me()
-      .then((result) => {
+      .then(async (result) => {
         if (!active) return
+
+        if (result) {
+          const setupComplete = await base44.entities.UserPreference.isSetupComplete()
+          if (!setupComplete) {
+            setUser(result)
+            setSetupRequired(true)
+            setError(null)
+            return
+          }
+        }
+
         setUser(result)
         setError(null)
+        setSetupRequired(false)
       })
       .catch((err) => {
         if (!active) return
@@ -64,18 +77,48 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  const login = async (credentials) => {
+    const user = await auth.login(credentials)
+    const setupComplete = await base44.entities.UserPreference.isSetupComplete()
+
+    setUser(user)
+    setError(null)
+    setSetupRequired(!setupComplete)
+
+    return { user, setupRequired: !setupComplete }
+  }
+
+  const register = async (userData) => {
+    const user = await auth.register(userData)
+    setUser(user)
+    setError(null)
+    setSetupRequired(true)
+
+    return user
+  }
+
+  const completePreferences = async (preferences = {}) => {
+    await base44.entities.UserPreference.upsert(preferences)
+    setSetupRequired(false)
+  }
+
   const value = useMemo(
     () => ({
       user,
       loading,
       error,
-      async logout() {
+      setupRequired,
+      login,
+      register,
+      completePreferences,
+      logout: async () => {
         await auth.logout()
         toast.success('Signed out of CourseIQ')
         setUser(null)
+        setSetupRequired(false)
       },
     }),
-    [user, loading, error],
+    [user, loading, error, setupRequired],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -92,7 +135,7 @@ export function useAuth() {
 }
 
 export function ProtectedRoute({ children }) {
-  const { loading, error } = useAuth()
+  const { loading, error, setupRequired } = useAuth()
 
   if (loading) {
     return (
@@ -109,6 +152,10 @@ export function ProtectedRoute({ children }) {
 
   if (error === 'auth_required') {
     return <Navigate to="/" replace />
+  }
+
+  if (setupRequired) {
+    return <Navigate to="/register" replace />
   }
 
   return children

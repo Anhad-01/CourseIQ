@@ -4,6 +4,8 @@ const STORAGE_KEYS = {
   courses: 'courseiq.courses',
   savedCourses: 'courseiq.savedCourses',
   preferences: 'courseiq.preferences',
+  registeredUsers: 'courseiq.registeredUsers',
+  preferencesSetupComplete: 'courseiq.preferencesSetupComplete',
 }
 
 const DEFAULT_USER = {
@@ -282,6 +284,72 @@ export const auth = {
     await delay(100)
     return true
   },
+
+  async register({ full_name, password }) {
+    await delay(150)
+
+    if (!full_name || !password) {
+      throw new Error('Name and password are required')
+    }
+
+    if (password.length < 6) {
+      throw new Error('Password must be at least 6 characters')
+    }
+
+    const registeredUsers = readStore(STORAGE_KEYS.registeredUsers, {})
+
+    const normalizedName = full_name.trim()
+    const userKey = normalizedName.toLowerCase()
+
+    if (registeredUsers[userKey]) {
+      throw new Error('User with this name already exists')
+    }
+
+    const newUser = {
+      id: createId('user'),
+      full_name: normalizedName,
+      email: `${userKey.replace(/\s+/g, '.')}@local.courseiq`,
+    }
+
+    registeredUsers[userKey] = {
+      ...newUser,
+      password,
+      created_at: new Date().toISOString(),
+    }
+
+    writeStore(STORAGE_KEYS.registeredUsers, registeredUsers)
+    writeStore(STORAGE_KEYS.user, newUser)
+
+    writeStore(STORAGE_KEYS.preferencesSetupComplete, false)
+
+    return newUser
+  },
+
+  async login({ full_name, password }) {
+    await delay(150)
+
+    if (!full_name || !password) {
+      throw new Error('Name and password are required')
+    }
+
+    const registeredUsers = readStore(STORAGE_KEYS.registeredUsers, {})
+    const userKey = full_name.trim().toLowerCase()
+
+    const userRecord = registeredUsers[userKey]
+
+    if (!userRecord) {
+      throw new Error('User not found. Please register first.')
+    }
+
+    if (userRecord.password !== password) {
+      throw new Error('Incorrect password')
+    }
+
+    const { password: _, ...userWithoutPassword } = userRecord
+    writeStore(STORAGE_KEYS.user, userWithoutPassword)
+
+    return userWithoutPassword
+  },
 }
 
 const SearchHistory = {
@@ -434,7 +502,16 @@ const UserPreference = {
     }
 
     writeStore(STORAGE_KEYS.preferences, next)
+
+    writeStore(STORAGE_KEYS.preferencesSetupComplete, true)
+
     return next
+  },
+
+  async isSetupComplete() {
+    ensureSeeded()
+    await delay(50)
+    return readStore(STORAGE_KEYS.preferencesSetupComplete, false)
   },
 }
 
@@ -448,4 +525,4 @@ export const base44 = {
   },
 }
 
-export { SearchHistory, Course, SavedCourse, UserPreference }
+export { SearchHistory, Course, SavedCourse, UserPreference, DEFAULT_PREFERENCES }

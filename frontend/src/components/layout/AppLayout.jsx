@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { BookMarked, BrainCircuit, LayoutDashboard, LogOut, Menu, Search, Settings, X } from 'lucide-react'
 import { Button } from '../ui/button'
@@ -94,6 +94,7 @@ export default function AppLayout() {
   const handleLogout = async () => {
     await logout()
     setMobileOpen(false)
+    navigate('/login')
   }
 
   return (
@@ -113,11 +114,6 @@ export default function AppLayout() {
               <div className="text-right">
                 <p className="text-sm font-medium text-foreground">
                   {user?.full_name || 'Learner'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {pathname === '/'
-                    ? 'AI search workspace'
-                    : 'Your personalized learning hub'}
                 </p>
               </div>
 
@@ -150,14 +146,11 @@ export default function AppLayout() {
             >
               <div className="section-shell py-4">
                 <div className="glass-panel space-y-4 p-4">
-                  <div className="rounded-2xl bg-muted/70 p-4">
-                    <p className="text-sm font-medium text-foreground">
-                      {user?.full_name || 'Learner'}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Continue building your learning path across top platforms.
-                    </p>
-                  </div>
+                 <div className="rounded-2xl bg-muted/70 p-4">
+                   <p className="text-sm font-medium text-foreground">
+                     {user?.full_name || 'Learner'}
+                   </p>
+                 </div>
 
                   <nav className="grid gap-2">
                     {navItems.map((item) => (
