@@ -91,8 +91,6 @@ function Dashboard() {
 
             <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
               Track your momentum across searches, bookmarked courses, and recent discoveries.
-              This dashboard mirrors the original product structure while using your custom
-              pipeline-driven frontend data layer.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">

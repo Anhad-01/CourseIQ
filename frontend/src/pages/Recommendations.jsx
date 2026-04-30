@@ -56,9 +56,9 @@ function EmptyRecommendations({ onGenerate, isLoading }) {
         </div>
 
         <h2 className="text-2xl font-semibold">Generate your personalized recommendations</h2>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-          CourseIQ will combine your search history, saved course progress, and preference profile
-          to rank the next best courses using the pipeline-aligned frontend logic.
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground whitespace-nowrap">
+          Combining your search history, saved course progress, and preference profile
+          to rank the next best courses for you.
         </p>
 
         <Button className="mt-6" onClick={onGenerate} disabled={isLoading}>
@@ -181,10 +181,10 @@ function Recommendations() {
             Personalized course discovery built from your learning signals
           </h1>
 
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+          {/* <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
             This feed mirrors the CourseIQ frontend architecture while using your pipeline logic:
             content-based retrieval, collaborative weighting, and serendipitous discovery.
-          </p>
+          </p> */}
         </div>
       </div>
 

@@ -209,8 +209,7 @@ export default function Settings() {
                   Tune CourseIQ to your learning style
                 </h1>
                 <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-                  Set your preferred platforms, level, budget, and topic interests so search
-                  results and recommendations align with the pipeline you actually want to follow.
+                  Set your preferred platforms, level, budget, and topic interests.
                 </p>
               </div>
             </div>
@@ -350,9 +349,9 @@ export default function Settings() {
                   </div>
 
                   <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm text-muted-foreground">
+                    {/* <p className="text-sm text-muted-foreground">
                       Save your preferences to personalize search, recommendations, and saved course suggestions.
-                    </p>
+                    </p> */}
 
                     <Button type="submit" disabled={saveMutation.isPending}>
                       {saveMutation.isPending ? (
@@ -376,7 +375,7 @@ export default function Settings() {
             <CardHeader>
               <CardTitle>Preference snapshot</CardTitle>
               <CardDescription>
-                A quick summary of the settings currently shaping your experience.
+                A quick summary of your current settings.
               </CardDescription>
             </CardHeader>
 
@@ -425,7 +424,7 @@ export default function Settings() {
             <CardHeader>
               <CardTitle>How this affects results</CardTitle>
               <CardDescription>
-                Your preferences map directly to the frontend search and recommendation behavior.
+                Your preferences map directly to the recommendation behavior.
               </CardDescription>
             </CardHeader>
 
@@ -433,8 +432,7 @@ export default function Settings() {
               <div className="rounded-2xl border bg-background/80 p-4">
                 <p className="font-medium text-foreground">Search ranking</p>
                 <p className="mt-2">
-                  Preferred platforms, budget, and skill level are used in the weighted ranking
-                  formula to re-order search results after semantic matching.
+                  Preferred platforms, budget, and skill level are used for weighted ranking to re-order search results.
                 </p>
               </div>
 
@@ -442,7 +440,7 @@ export default function Settings() {
                 <p className="font-medium text-foreground">Recommendations</p>
                 <p className="mt-2">
                   Your interests and saved courses influence the content-based, collaborative, and
-                  discovery recommendation mix shown on the recommendations page.
+                  discovery recommendation mix.
                 </p>
               </div>
 
@@ -450,7 +448,7 @@ export default function Settings() {
                 <p className="font-medium text-foreground">Saved courses</p>
                 <p className="mt-2">
                   Updating preferences helps the app surface more relevant recent discoveries and
-                  improves what you are likely to bookmark or complete next.
+                  suggests what you are likely to bookmark or complete next.
                 </p>
               </div>
             </CardContent>

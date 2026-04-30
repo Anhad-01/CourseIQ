@@ -257,9 +257,7 @@ export default function SavedCourses() {
               Track bookmarks, progress, and completions
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-              Manage every course you&apos;ve saved in one place. Update statuses
-              optimistically, jump back to the provider page, or remove courses you no longer
-              want to track.
+              Manage every course you&apos;ve saved in one place.
             </p>
           </div>
 
