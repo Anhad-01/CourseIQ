@@ -1,5 +1,6 @@
 import math
 import re
+from functools import lru_cache
 
 
 QUERY_LEVEL_MAP = {
@@ -75,6 +76,46 @@ def semantic_similarity(course: dict, intent: dict) -> float:
     return min(1.0, matches / len(intent["tokens"]) + phrase_bonus)
 
 
+@lru_cache(maxsize=1)
+def get_cross_encoder():
+    try:
+        from sentence_transformers import CrossEncoder
+    except ImportError:
+        return None
+
+    try:
+        return CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+    except Exception:
+        return None
+
+
+def course_semantic_text(course: dict) -> str:
+    return " ".join(
+        str(value or "")
+        for value in [
+            course.get("course_title"),
+            course.get("description"),
+            course.get("category"),
+            course.get("skill_level"),
+            course.get("instructor"),
+            course.get("platform"),
+        ]
+    )
+
+
+def cross_encoder_scores(query: str, courses: list[dict]) -> list[float] | None:
+    encoder = get_cross_encoder()
+    if encoder is None or not courses:
+        return None
+
+    try:
+        raw_scores = encoder.predict([(query, course_semantic_text(course)) for course in courses])
+    except Exception:
+        return None
+
+    return [1 / (1 + math.exp(-float(score))) for score in raw_scores]
+
+
 def skill_match(course: dict, preferences: dict, intent: dict) -> float:
     preferred = preferences.get("skill_level") or intent.get("inferred_skill")
     if not preferred:
@@ -95,7 +136,7 @@ def budget_penalty(course: dict, preferences: dict) -> float:
 
 
 def rank_course(course: dict, intent: dict, preferences: dict) -> dict:
-    similarity = semantic_similarity(course, intent)
+    similarity = float(course.get("similarity_score") or semantic_similarity(course, intent))
     normalized_rating = float(course.get("rating") or 0) / 5
     penalty = budget_penalty(course, preferences)
     level_match = skill_match(course, preferences, intent)
@@ -103,5 +144,21 @@ def rank_course(course: dict, intent: dict, preferences: dict) -> dict:
     return {
         **course,
         "similarity_score": round(similarity, 3),
+        "normalized_rating": round(normalized_rating, 3),
+        "budget_penalty": round(penalty, 3),
+        "skill_match": round(level_match, 3),
         "ranking_score": round(total, 3),
     }
+
+
+def two_stage_rerank(query: str, courses: list[dict], preferences: dict) -> list[dict]:
+    intent = parse_intent(query)
+    semantic_scores = cross_encoder_scores(query, courses)
+
+    stage_a = []
+    for index, course in enumerate(courses):
+        score = semantic_scores[index] if semantic_scores else semantic_similarity(course, intent)
+        stage_a.append({**course, "similarity_score": round(score, 3)})
+
+    stage_b = [rank_course(course, intent, preferences) for course in stage_a]
+    return sorted(stage_b, key=lambda item: (item["ranking_score"], item.get("rating") or 0), reverse=True)

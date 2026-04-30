@@ -22,6 +22,17 @@ router = APIRouter(tags=["courses"])
 
 def upsert_course(db: Session, user: User, payload: dict) -> Course:
     values = normalize_course_payload(payload)
+    for pending in db.new:
+        if (
+            isinstance(pending, Course)
+            and pending.user_id == user.id
+            and pending.platform == values["platform"]
+            and pending.course_title == values["course_title"]
+        ):
+            for key, value in values.items():
+                setattr(pending, key, value)
+            return pending
+
     course = db.scalar(
         select(Course).where(
             Course.user_id == user.id,

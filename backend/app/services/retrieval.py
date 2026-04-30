@@ -1,4 +1,5 @@
-from .ranking import parse_intent, platform_allowed, rank_course
+from .ranking import platform_allowed, two_stage_rerank
+from .scraper_agents import PLATFORM_SEARCH_URLS, scrape_platforms
 
 
 CATALOG = [
@@ -101,26 +102,44 @@ CATALOG = [
 ]
 
 
+def dedupe_courses(courses: list[dict]) -> list[dict]:
+    seen = set()
+    unique = []
+    for course in courses:
+        key = (
+            (course.get("platform") or "").lower(),
+            (course.get("course_title") or "").lower(),
+            (course.get("url") or "").split("?")[0].lower(),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(course)
+    return unique
+
+
 async def scrape_live_courses(query: str, platforms: list[str]) -> list[dict]:
-    return []
+    active_platforms = [platform for platform in platforms if platform in PLATFORM_SEARCH_URLS]
+    results = await scrape_platforms(query, active_platforms)
+    courses = []
+    for result in results:
+        courses.extend(result.courses)
+    return courses
 
 
 async def retrieve_courses(query: str, preferences: dict, live_scrape: bool = False) -> list[dict]:
-    intent = parse_intent(query)
     candidates = []
+    platforms = preferences.get("preferred_platforms") or list(PLATFORM_SEARCH_URLS)
 
     if live_scrape:
-        candidates.extend(await scrape_live_courses(query, preferences.get("preferred_platforms") or []))
+        candidates.extend(await scrape_live_courses(query, platforms))
 
     candidates.extend(CATALOG)
-    ranked = [
-        rank_course(course, intent, preferences)
-        for course in candidates
-        if platform_allowed(course, preferences)
-    ]
+    candidates = dedupe_courses([course for course in candidates if platform_allowed(course, preferences)])
+    ranked = two_stage_rerank(query, candidates, preferences)
     ranked = [
         course
         for course in ranked
         if course["similarity_score"] >= 0.18 or course["ranking_score"] >= 0.36
     ]
-    return sorted(ranked, key=lambda item: (item["ranking_score"], item.get("rating") or 0), reverse=True)[:12]
+    return ranked[:12]
