@@ -14,7 +14,7 @@ import CourseCard from '../components/search/CourseCard'
 import SearchSkeleton from '../components/search/SearchSkeleton'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { base44 } from '../lib/mockBase44'
+import { base44 } from '../lib/apiClient'
 import { searchCoursesWithAI } from '../lib/courseSearchAgent'
 import { PLATFORM_OPTIONS, TRENDING_TOPICS } from '../lib/utils'
 
@@ -38,11 +38,6 @@ function SearchPage() {
   const searchMutation = useMutation({
     mutationFn: async (query) => {
       const normalizedResults = await searchCoursesWithAI(query, preferences || {})
-
-      await Promise.all([
-        base44.entities.SearchHistory.create({ query }),
-        base44.entities.Course.bulkUpsert(normalizedResults),
-      ])
 
       return normalizedResults
     },
@@ -165,9 +160,7 @@ function SearchPage() {
               </h1>
 
               <p className="mx-auto mt-5 max-w-2xl text-balance text-base leading-7 text-muted-foreground sm:text-lg">
-                Search across leading learning platforms with a frontend modeled on the
-                Base44 app, now aligned to your pipeline-driven ranking and recommendation
-                logic.
+                Search across leading learning platforms
               </p>
             </div>
 
@@ -256,7 +249,7 @@ function SearchPage() {
                   Results for &quot;{searchQuery}&quot;
                 </h1>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Showing courses ranked using semantic relevance, rating normalization,
+                  Courses ranked using semantic relevance, rating normalization,
                   budget sensitivity, and skill-level fit.
                 </p>
               </div>

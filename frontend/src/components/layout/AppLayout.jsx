@@ -89,12 +89,13 @@ function NavItem({ item, mobile = false, onClick }) {
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const { user, logout } = useAuth()
 
   const handleLogout = async () => {
     await logout()
     setMobileOpen(false)
-    navigate('/login')
+    navigate('/login', { replace: true })
   }
 
   return (

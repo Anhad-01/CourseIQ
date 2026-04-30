@@ -14,7 +14,7 @@ import {
   CardTitle,
 } from '../components/ui/card'
 import { getRecommendations } from '../lib/courseSearchAgent'
-import { base44 } from '../lib/mockBase44'
+import { base44 } from '../lib/apiClient'
 import { RECOMMENDATION_META } from '../lib/utils'
 
 const explanationCards = [

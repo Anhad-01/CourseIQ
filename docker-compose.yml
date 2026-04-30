@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: courseiq
+      POSTGRES_USER: courseiq
+      POSTGRES_PASSWORD: courseiq
+    ports:
+      - "5433:5432"
+    volumes:
+      - courseiq_postgres:/var/lib/postgresql/data
+
+volumes:
+  courseiq_postgres:

@@ -9,7 +9,7 @@ import { Select, SelectItem } from '../components/ui/select'
 import { Textarea } from '../components/ui/textarea'
 import { Input } from '../components/ui/input'
 import { Badge } from '../components/ui/badge'
-import { base44 } from '../lib/mockBase44'
+import { base44 } from '../lib/apiClient'
 import {
   BUDGET_OPTIONS,
   PLATFORM_OPTIONS,

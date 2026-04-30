@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button'
 import StatCard from '../components/dashboard/StatCard'
 import RecentSearches from '../components/dashboard/RecentSearches'
 import CourseCard from '../components/search/CourseCard'
-import { base44 } from '../lib/mockBase44'
+import { base44 } from '../lib/apiClient'
 
 function Dashboard() {
   const navigate = useNavigate()

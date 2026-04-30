@@ -12,7 +12,7 @@ import { Textarea } from '../components/ui/textarea'
 import { Badge } from '../components/ui/badge'
 import { useAuth } from '../lib/AuthContext'
 import { PLATFORM_OPTIONS, PLATFORM_STYLES, SKILL_OPTIONS, BUDGET_OPTIONS } from '../lib/utils'
-import { DEFAULT_PREFERENCES } from '../lib/mockBase44'
+import { DEFAULT_PREFERENCES } from '../lib/apiClient'
 
 const TOTAL_STEPS = 3
 
@@ -289,6 +289,7 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState({})
 
   const togglePlatform = (platform) => {
+    setErrors((current) => ({ ...current, platforms: undefined }))
     setPreferences((prev) => {
       const exists = prev.preferred_platforms.includes(platform)
       return {
@@ -401,6 +402,14 @@ export default function RegisterPage() {
   const [animDirection, setAnimDirection] = useState(0)
 
   const handleNext = () => {
+    if (currentStep === 1 && preferences.preferred_platforms.length < 2) {
+      setErrors((current) => ({
+        ...current,
+        platforms: 'Select at least 2 platforms to continue',
+      }))
+      return
+    }
+
     setAnimDirection(1)
     goNext()
   }
@@ -503,7 +512,7 @@ export default function RegisterPage() {
           <>
             <StepIndicator currentStep={currentStep} />
 
-            <div className="relative min-h-[380px] mb-6">
+            <div className="mb-8 overflow-hidden">
               <AnimatePresence mode="wait" custom={animDirection}>
                 {currentStep === 1 && (
                   <motion.div
@@ -514,7 +523,7 @@ export default function RegisterPage() {
                     exit="exit"
                     custom={animDirection}
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                    className="absolute inset-0"
+                    className="relative"
                   >
                     <Step1Platforms
                       selectedPlatforms={preferences.preferred_platforms}
@@ -535,7 +544,7 @@ export default function RegisterPage() {
                     exit="exit"
                     custom={animDirection}
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                    className="absolute inset-0"
+                    className="relative"
                   >
                     <Step2SkillBudget
                       skillLevel={preferences.skill_level}
@@ -555,7 +564,7 @@ export default function RegisterPage() {
                     exit="exit"
                     custom={animDirection}
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                    className="absolute inset-0"
+                    className="relative"
                   >
                     <Step3Interests
                       interests={preferences.interests}
@@ -569,7 +578,7 @@ export default function RegisterPage() {
               </AnimatePresence>
             </div>
 
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-4 pt-2">
               <Button
                 type="button"
                 variant="outline"

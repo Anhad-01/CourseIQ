@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { LoaderCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import { auth } from './mockBase44'
+import { auth, base44 } from './apiClient'
 
 const AuthContext = createContext(null)
 
@@ -151,7 +151,7 @@ export function ProtectedRoute({ children }) {
   }
 
   if (error === 'auth_required') {
-    return <Navigate to="/" replace />
+    return <Navigate to="/login" replace />
   }
 
   if (setupRequired) {

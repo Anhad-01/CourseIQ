@@ -7,7 +7,7 @@ import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Select, SelectItem } from '../components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { SavedCourse } from '../lib/mockBase44'
+import { SavedCourse } from '../lib/apiClient'
 import { formatDate, titleCase } from '../lib/utils'
 import { toast } from 'sonner'
 

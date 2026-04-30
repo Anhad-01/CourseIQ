@@ -85,9 +85,9 @@ function SearchBar({
               autoFocus={autoFocus}
               className={styles.input}
             />
-            <p className={styles.helper}>
+            {/* <p className={styles.helper}>
               Powered by CourseIQ&apos;s pipeline-aware ranking and recommendation logic.
-            </p>
+            </p> */}
           </div>
 
           <Button

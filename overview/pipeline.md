@@ -1,4 +1,4 @@
-# CourseMind AI: ML Architecture & Pipeline Implementation Plan
+# CourseIQ: ML Architecture & Pipeline Implementation Plan
 
 ## Project Overview
 CourseMind AI is an intelligent Software-as-a-Service (SaaS) platform designed to aggregate, filter, and recommend educational courses from leading providers (Coursera, Udemy, NPTEL, edX, Khan Academy, LinkedIn Learning, and FutureSkills Prime). Moving beyond standard API wrappers, the platform leverages a distributed, agentic Machine Learning architecture to dynamically retrieve courses, bypass static scraping limitations, and deliver hyper-personalized learning paths through a hybrid recommendation engine.
