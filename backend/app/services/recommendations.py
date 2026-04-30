@@ -1,4 +1,7 @@
-from .ranking import budget_penalty, normalize_text, tokenize
+from collections import defaultdict
+
+from .ranking import budget_penalty
+from .vector_store import cosine_similarity, course_text, embed_text
 
 
 ADJACENT_CATEGORIES = {
@@ -9,88 +12,223 @@ ADJACENT_CATEGORIES = {
     "DevOps": ["Programming Fundamentals", "Artificial Intelligence"],
     "Design": ["Frontend Development", "AI Product Management"],
     "Programming Fundamentals": ["Frontend Development", "Data Science"],
+    "Blockchain": ["Cybersecurity", "Cloud Computing", "Programming Fundamentals"],
 }
 
 
-def derive_signals(search_history: list[dict], saved_courses: list[dict], preferences: dict) -> list[str]:
-    signals: list[str] = []
-    for entry in search_history:
-        signals.extend(tokenize(entry.get("search_query") or entry.get("query")))
+INTERACTION_WEIGHTS = {
+    "search_click": 1,
+    "bookmarked": 3,
+    "in_progress": 5,
+    "completed": 8,
+}
+
+
+def course_key(course: dict) -> str:
+    return f"{course.get('platform')}::{course.get('course_title')}".lower()
+
+
+def saved_course_vector(saved_courses: list[dict]) -> list[float]:
+    if not saved_courses:
+        return []
+
+    weighted_vectors = []
     for course in saved_courses:
-        signals.extend(tokenize(course.get("course_title")))
-        signals.extend(tokenize(course.get("category")))
-        signals.extend(tokenize(course.get("description")))
-    for interest in preferences.get("interests") or []:
-        signals.extend(tokenize(interest))
-    return signals
+        weight = INTERACTION_WEIGHTS.get(course.get("status"), 3)
+        weighted_vectors.append((weight, embed_text(course_text(course))))
+
+    total_weight = sum(weight for weight, _ in weighted_vectors) or 1
+    centroid = [0.0] * len(weighted_vectors[0][1])
+    for weight, vector in weighted_vectors:
+        for index, value in enumerate(vector):
+            centroid[index] += value * weight / total_weight
+    return centroid
 
 
-def content_score(course: dict, signals: list[str], saved_courses: list[dict], preferences: dict) -> float:
-    signal_set = set(signals)
-    text = normalize_text(f"{course.get('course_title')} {course.get('description')} {course.get('category')}")
-    keyword_matches = sum(1 for token in signal_set if token in text)
-    category_match = 0.35 if any(item.get("category") == course.get("category") for item in saved_courses) else 0
-    platform_boost = 0.1 if course.get("platform") in (preferences.get("preferred_platforms") or []) else 0
-    rating_boost = float(course.get("rating") or 0) / 10
-    return category_match + min(0.55, keyword_matches * 0.08) + platform_boost + rating_boost
+def content_based_scores(candidates: list[dict], saved_courses: list[dict], embedding_map: dict[str, list[float]]) -> dict[str, float]:
+    centroid = saved_course_vector(saved_courses)
+    if not centroid:
+        return {}
+
+    scores = {}
+    for course in candidates:
+        course_id = course.get("id")
+        vector = embedding_map.get(course_id) or embed_text(course_text(course))
+        scores[course_id] = round(cosine_similarity(centroid, vector), 4)
+    return scores
 
 
-def collaborative_score(course: dict, saved_courses: list[dict], preferences: dict) -> float:
-    status_weight = 0.0
-    for item in saved_courses:
-        if item.get("platform") != course.get("platform"):
+def user_profile(interactions: list[dict]) -> dict[str, float]:
+    profile: dict[str, float] = defaultdict(float)
+    for interaction in interactions:
+        key = interaction.get("course_key")
+        if key:
+            profile[key] += interaction.get("weight", 0)
+    return dict(profile)
+
+
+def profile_similarity(left: dict[str, float], right: dict[str, float]) -> float:
+    common = set(left) & set(right)
+    dot = sum(left[key] * right[key] for key in common)
+    left_norm = sum(value * value for value in left.values()) ** 0.5
+    right_norm = sum(value * value for value in right.values()) ** 0.5
+    if left_norm == 0 or right_norm == 0:
+        return 0.0
+    return dot / (left_norm * right_norm)
+
+
+def collaborative_scores(candidates: list[dict], current_user_id: str, interactions: list[dict]) -> dict[str, float]:
+    by_user: dict[str, list[dict]] = defaultdict(list)
+    for interaction in interactions:
+        by_user[interaction["user_id"]].append(interaction)
+
+    current_profile = user_profile(by_user.get(current_user_id, []))
+    if not current_profile:
+        return {}
+
+    candidate_keys = {course_key(course): course.get("id") for course in candidates}
+    raw_scores: dict[str, float] = defaultdict(float)
+    for user_id, user_interactions in by_user.items():
+        if user_id == current_user_id:
             continue
-        status_weight += {"completed": 0.3, "in_progress": 0.2, "bookmarked": 0.1}.get(item.get("status"), 0.1)
-    platform_boost = 0.2 if course.get("platform") in (preferences.get("preferred_platforms") or []) else 0
-    return float(course.get("rating") or 0) / 5 + status_weight + platform_boost
+        similarity = profile_similarity(current_profile, user_profile(user_interactions))
+        if similarity <= 0:
+            continue
+        for interaction in user_interactions:
+            candidate_id = candidate_keys.get(interaction.get("course_key"))
+            if candidate_id:
+                raw_scores[candidate_id] += similarity * interaction.get("weight", 0)
+
+    max_score = max(raw_scores.values(), default=0)
+    if max_score == 0:
+        return {}
+    return {course_id: round(score / max_score, 4) for course_id, score in raw_scores.items()}
+
+
+def fallback_collaborative_score(course: dict, saved_courses: list[dict], preferences: dict) -> float:
+    platform_hits = sum(1 for item in saved_courses if item.get("platform") == course.get("platform"))
+    category_hits = sum(1 for item in saved_courses if item.get("category") == course.get("category"))
+    preferred_platform = 1 if course.get("platform") in (preferences.get("preferred_platforms") or []) else 0
+    rating = float(course.get("rating") or 0) / 5
+    return min(1.0, 0.18 * platform_hits + 0.22 * category_hits + 0.15 * preferred_platform + 0.25 * rating)
 
 
 def discovery_score(course: dict, saved_courses: list[dict], preferences: dict) -> float:
     seen_categories = {item.get("category") for item in saved_courses if item.get("category")}
     adjacent_hit = any(course.get("category") in ADJACENT_CATEGORIES.get(category, []) for category in seen_categories)
-    novelty_boost = 0.05 if course.get("category") in seen_categories else 0.22
+    novelty_boost = 0.03 if course.get("category") in seen_categories else 0.2
     budget_boost = 0.15 if budget_penalty(course, preferences) == 0 else 0
-    return (0.45 if adjacent_hit else 0.18) + novelty_boost + budget_boost + float(course.get("rating") or 0) / 10
+    return min(1.0, (0.45 if adjacent_hit else 0.12) + novelty_boost + budget_boost + float(course.get("rating") or 0) / 10)
+
+
+def contextual_features(course: dict, preferences: dict, search_history: list[dict]) -> dict[str, float]:
+    preferred_platform = 1.0 if course.get("platform") in (preferences.get("preferred_platforms") or []) else 0.0
+    budget_fit = 1.0 - budget_penalty(course, preferences)
+    recent_query_text = " ".join((entry.get("query") or entry.get("search_query") or "") for entry in search_history[:5]).lower()
+    title = (course.get("course_title") or "").lower()
+    recent_topic_hit = 1.0 if title and any(token in title for token in recent_query_text.split()) else 0.0
+    rating = float(course.get("rating") or 0) / 5
+    return {
+        "preferred_platform": preferred_platform,
+        "budget_fit": budget_fit,
+        "recent_topic_hit": recent_topic_hit,
+        "rating": rating,
+    }
+
+
+def probability_of_save(cbf: float, cf: float, discovery: float, context: dict[str, float]) -> float:
+    score = (
+        -0.9
+        + 1.8 * cbf
+        + 1.35 * cf
+        + 0.55 * discovery
+        + 0.45 * context["preferred_platform"]
+        + 0.4 * context["budget_fit"]
+        + 0.35 * context["recent_topic_hit"]
+        + 0.5 * context["rating"]
+    )
+    return round(1 / (1 + pow(2.718281828, -score)), 4)
 
 
 def reason_for(course: dict, recommendation_type: str) -> str:
     if recommendation_type == "content-based":
-        return f"Matches your recent interest in {course.get('category')} and overlaps with saved-course topics."
+        return f"Similar to saved courses and interests around {course.get('category')}."
     if recommendation_type == "collaborative":
-        return f"Ranks well for learners with similar platform and progress patterns, with a rating of {course.get('rating')}."
-    return f"Introduces a nearby topic in {course.get('category')} without drifting too far from your goals."
+        return "Learners with similar saved and progress patterns engaged with this."
+    return f"Adjacent {course.get('category')} topic added for discovery."
 
 
-def recommend_courses(candidates: list[dict], search_history: list[dict], saved_courses: list[dict], preferences: dict) -> list[dict]:
+def inject_serendipity(scored: list[dict], desired_count: int = 7) -> list[dict]:
+    if not scored:
+        return []
+    primary = [item for item in scored if item["recommendation_type"] != "discovery"]
+    discovery = [item for item in scored if item["recommendation_type"] == "discovery"]
+    target_discovery = max(1, round(desired_count * 0.15))
+
+    result = primary[: max(0, desired_count - target_discovery)]
+    for item in discovery[:target_discovery]:
+        if item not in result:
+            result.append(item)
+    if len(result) < desired_count:
+        for item in scored:
+            if item not in result:
+                result.append(item)
+            if len(result) == desired_count:
+                break
+    return sorted(result, key=lambda item: item["recommendation_score"], reverse=True)
+
+
+def recommend_courses(
+    candidates: list[dict],
+    search_history: list[dict],
+    saved_courses: list[dict],
+    preferences: dict,
+    *,
+    current_user_id: str,
+    interactions: list[dict],
+    embedding_map: dict[str, list[float]],
+) -> list[dict]:
     saved_ids = {item.get("source_course_id") or item.get("course_id") for item in saved_courses}
-    saved_keys = {f"{item.get('platform')}-{item.get('course_title')}" for item in saved_courses}
-    signals = derive_signals(search_history, saved_courses, preferences)
+    saved_keys = {course_key(item) for item in saved_courses}
     allowed = preferences.get("preferred_platforms") or []
-    scored = []
 
+    candidates = [
+        course
+        for course in candidates
+        if course.get("id") not in saved_ids
+        and course_key(course) not in saved_keys
+        and (not allowed or course.get("platform") in allowed)
+    ]
+
+    cbf = content_based_scores(candidates, saved_courses, embedding_map)
+    cf = collaborative_scores(candidates, current_user_id, interactions)
+
+    scored = []
     for course in candidates:
-        if course.get("id") in saved_ids or f"{course.get('platform')}-{course.get('course_title')}" in saved_keys:
-            continue
-        if allowed and course.get("platform") not in allowed:
-            continue
-        scores = {
-            "content-based": content_score(course, signals, saved_courses, preferences),
-            "collaborative": collaborative_score(course, saved_courses, preferences),
-            "discovery": discovery_score(course, saved_courses, preferences),
+        course_id = course.get("id")
+        cbf_score = cbf.get(course_id, 0.0)
+        cf_score = cf.get(course_id, fallback_collaborative_score(course, saved_courses, preferences))
+        exploration_score = discovery_score(course, saved_courses, preferences)
+        context = contextual_features(course, preferences, search_history)
+        probability = probability_of_save(cbf_score, cf_score, exploration_score, context)
+        branch_scores = {
+            "content-based": cbf_score,
+            "collaborative": cf_score,
+            "discovery": exploration_score,
         }
-        recommendation_type, best_score = max(scores.items(), key=lambda item: item[1])
+        recommendation_type = max(branch_scores.items(), key=lambda item: item[1])[0]
         scored.append(
             {
                 **course,
                 "recommendation_type": recommendation_type,
                 "recommendation_reason": reason_for(course, recommendation_type),
-                "recommendation_score": round(best_score, 3),
+                "recommendation_score": probability,
+                "cbf_score": round(cbf_score, 4),
+                "cf_score": round(cf_score, 4),
+                "discovery_score": round(exploration_score, 4),
+                "probability_of_save": probability,
             },
         )
 
-    grouped = [
-        *[item for item in scored if item["recommendation_type"] == "content-based"][:3],
-        *[item for item in scored if item["recommendation_type"] == "collaborative"][:2],
-        *[item for item in scored if item["recommendation_type"] == "discovery"][:2],
-    ]
-    return sorted(grouped, key=lambda item: item["recommendation_score"], reverse=True)[:7]
+    scored.sort(key=lambda item: item["recommendation_score"], reverse=True)
+    return inject_serendipity(scored, desired_count=7)

@@ -15,6 +15,7 @@ from ..services.serialization import (
     saved_course_to_dict,
     search_history_to_dict,
 )
+from ..services.vector_store import upsert_course_embedding
 
 
 router = APIRouter(tags=["courses"])
@@ -64,6 +65,11 @@ async def search_courses(
     for item in ranked:
         course = upsert_course(db, user, {**item, "search_query": payload.query.strip()})
         courses.append(course)
+
+    db.flush()
+    for course in courses:
+        upsert_course_embedding(db, course)
+        db.add(Interaction(user_id=user.id, course_id=course.id, event_type="search_click", weight=1))
 
     history = SearchHistory(
         user_id=user.id,

@@ -1,4 +1,6 @@
-from .ranking import platform_allowed, two_stage_rerank
+import re
+
+from .ranking import platform_allowed, semantic_similarity, parse_intent, two_stage_rerank
 from .scraper_agents import PLATFORM_SEARCH_URLS, scrape_platforms
 
 
@@ -118,6 +120,42 @@ def dedupe_courses(courses: list[dict]) -> list[dict]:
     return unique
 
 
+FILLER_COURSE_TITLES = {
+    "learn chatgpt",
+    "learn spanish",
+}
+
+
+def normalized_title(course: dict) -> str:
+    return re.sub(r"\s+", " ", (course.get("course_title") or "").strip().lower())
+
+
+def is_result_count_card(course: dict) -> bool:
+    title = normalized_title(course)
+    compact = re.sub(r"\s+", "", title)
+    return bool(
+        re.search(r"^\d+[,\d]*results?for", compact)
+        or re.search(r"^\d+[,\d]*results?", compact)
+        or title.startswith(("results for", "search results", "showing"))
+    )
+
+
+def trim_at_filler_courses(courses: list[dict]) -> list[dict]:
+    trimmed = []
+    for course in courses:
+        if normalized_title(course) in FILLER_COURSE_TITLES:
+            break
+        trimmed.append(course)
+    return trimmed
+
+
+def remove_weak_tail(query: str, courses: list[dict]) -> list[dict]:
+    intent = parse_intent(query)
+    cleaned = [course for course in courses if not is_result_count_card(course)]
+    trimmed = trim_at_filler_courses(cleaned)
+    return [course for course in trimmed if semantic_similarity(course, intent) >= 0.18]
+
+
 async def scrape_live_courses(query: str, platforms: list[str]) -> list[dict]:
     active_platforms = [platform for platform in platforms if platform in PLATFORM_SEARCH_URLS]
     results = await scrape_platforms(query, active_platforms)
@@ -142,4 +180,4 @@ async def retrieve_courses(query: str, preferences: dict, live_scrape: bool = Fa
         for course in ranked
         if course["similarity_score"] >= 0.18 or course["ranking_score"] >= 0.36
     ]
-    return ranked[:12]
+    return remove_weak_tail(query, ranked)[:12]

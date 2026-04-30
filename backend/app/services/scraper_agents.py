@@ -105,9 +105,11 @@ def is_noisy_title(title: str, query: str) -> bool:
     lowered = title.lower()
     query_lower = query.lower()
     noise_patterns = [
-        r"^\d+results?for",
+        r"^\d+[,\d]*results?for",
+        r"^\d+[,\d]*results?",
         r"^results?for",
         r"^search results",
+        r"^showing",
         r"^free courses?$",
         r"^for individuals$",
         r"^browse",
@@ -119,7 +121,9 @@ def is_noisy_title(title: str, query: str) -> bool:
         return True
     if query_lower and lowered.strip() in {query_lower, f"results for {query_lower}", f"courses for {query_lower}"}:
         return True
-    return len(title.strip()) < 8
+    if len(title.strip()) < 8:
+        return True
+    return bool(re.fullmatch(r"[\d,]+\s*(results?|courses?)?.*", lowered.strip()))
 
 
 def is_probable_course_url(platform: str, url: str) -> bool:

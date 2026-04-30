@@ -107,3 +107,10 @@ class Interaction(Base):
     event_type: Mapped[str] = mapped_column(String)
     weight: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class CourseEmbedding(Base, TimestampMixin):
+    __tablename__ = "course_embeddings"
+
+    course_id: Mapped[str] = mapped_column(ForeignKey("courses.id", ondelete="CASCADE"), primary_key=True)
+    vector: Mapped[list[float]] = mapped_column(JsonType)
