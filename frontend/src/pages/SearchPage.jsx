@@ -113,14 +113,14 @@ function SearchPage() {
       accent: 'text-primary',
     },
     {
-      label: 'Pipeline ranking',
-      value: 'Semantic + constraints',
+      label: 'Course Retrieval',
+      value: 'Agentic Scraping',
       icon: BrainCircuit,
       accent: 'text-accent',
     },
     {
-      label: 'Results cached',
-      value: results.length ? `${results.length} courses` : 'Ready',
+      label: 'Results',
+      value: results.length ? `${results.length} courses` : 'Re-ranking',
       icon: BarChart3,
       accent: 'text-amber-600',
     },
@@ -151,7 +151,7 @@ function SearchPage() {
             <div className="mx-auto max-w-3xl text-center">
               <Badge className="rounded-full border-primary/20 bg-primary/10 px-4 py-1.5 text-primary">
                 <Sparkles className="mr-2 size-3.5" />
-                CourseIQ frontend replica
+                CourseIQ
               </Badge>
 
               <h1 className="mt-6 text-balance text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
