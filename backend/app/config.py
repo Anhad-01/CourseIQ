@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expires_minutes: int = 60 * 24 * 7
     frontend_origin: str = "http://localhost:5173"
-    courseiq_enable_live_scrape: bool = False
+    courseiq_enable_live_scrape: bool = True
 
     model_config = SettingsConfigDict(env_file=ENV_FILE, extra="ignore")
 
