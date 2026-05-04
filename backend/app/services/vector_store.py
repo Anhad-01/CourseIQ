@@ -43,6 +43,12 @@ def cosine_similarity(left: list[float] | None, right: list[float] | None) -> fl
 
 def upsert_course_embedding(db: Session, course: Course) -> CourseEmbedding:
     vector = embed_text(course_text(course))
+
+    for pending in db.new:
+        if isinstance(pending, CourseEmbedding) and pending.course_id == course.id:
+            pending.vector = vector
+            return pending
+
     embedding = db.get(CourseEmbedding, course.id)
     if embedding is None:
         embedding = CourseEmbedding(course_id=course.id, vector=vector)
@@ -53,12 +59,13 @@ def upsert_course_embedding(db: Session, course: Course) -> CourseEmbedding:
 
 
 def load_embedding_map(db: Session, courses: list[Course]) -> dict[str, list[float]]:
+    unique_courses = list({course.id: course for course in courses}.values())
     embeddings = db.scalars(
-        select(CourseEmbedding).where(CourseEmbedding.course_id.in_([course.id for course in courses])),
+        select(CourseEmbedding).where(CourseEmbedding.course_id.in_([course.id for course in unique_courses])),
     ).all()
     by_course_id = {embedding.course_id: embedding.vector for embedding in embeddings}
 
-    missing = [course for course in courses if course.id not in by_course_id]
+    missing = [course for course in unique_courses if course.id not in by_course_id]
     for course in missing:
         embedding = upsert_course_embedding(db, course)
         by_course_id[course.id] = embedding.vector

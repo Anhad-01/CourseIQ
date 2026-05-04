@@ -116,8 +116,17 @@ def is_noisy_title(title: str, query: str) -> bool:
         r"^explore",
         r"^sign in$",
         r"^join now$",
+        r"^our content specialists$",
+        r"^our contributors$",
+        r"^contributors?$",
+        r"^content specialists?$",
+        r"^our team$",
+        r"^about us$",
+        r"^learn with us$",
     ]
     if any(re.search(pattern, compact if "results" in pattern else lowered) for pattern in noise_patterns):
+        return True
+    if any(token in lowered for token in ["content specialist", "content specialists", "contributor", "contributors"]):
         return True
     if query_lower and lowered.strip() in {query_lower, f"results for {query_lower}", f"courses for {query_lower}"}:
         return True
@@ -137,7 +146,9 @@ def is_probable_course_url(platform: str, url: str) -> bool:
     if platform == "edX":
         return any(token in lowered for token in ["/learn/", "/course/", "/certificates/", "/program/"])
     if platform == "Khan Academy":
-        return "/search" not in lowered
+        allowed_tokens = ["/math/", "/science/", "/computing/", "/economics/", "/college-careers/", "/search?page_search_query="]
+        blocked_tokens = ["/about", "/contribute", "/careers", "/donate", "/get-started", "/team", "/stories"]
+        return any(token in lowered for token in allowed_tokens) and not any(token in lowered for token in blocked_tokens)
     if platform == "NPTEL":
         return "/courses/" in lowered or "nptel.ac.in" in lowered
     if platform == "FutureSkills Prime":
